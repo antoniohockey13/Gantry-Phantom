@@ -388,6 +388,7 @@ class Interface:
         """
         self.handle_gcommand('G28')
 
+
     def absolut_coordinates(self, coordenadas_absolutas: bool):
         """
         Tells the machine which type of cordinate system must use.
