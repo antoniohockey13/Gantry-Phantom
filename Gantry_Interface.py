@@ -5,8 +5,8 @@ Created on Wed Feb 22 10:26:08 2023
 @author: Antonio
 """
 
-import serial
 import time
+import serial
 
 # TO DO: Chequear parity connect, inicializar G en connect,
 # G28 despacito, como funciona logger, instalar GUI
