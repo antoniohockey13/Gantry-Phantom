@@ -1,0 +1,5 @@
+# No subir datos
+*.dat
+
+# No subir pycache
+__pycache__

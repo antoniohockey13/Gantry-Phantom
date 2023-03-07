@@ -9,7 +9,7 @@ import time
 import serial
 
 # TO DO: Chequear parity connect, inicializar G en connect,
-# G28 despacito, como funciona logger, instalar GUI
+# G28 despacito, como funciona logger, investigar G10 y G02, G03
 
 class Interface:
     """
@@ -123,6 +123,9 @@ class Interface:
     def move(self, x: float = 0, y: float = 0, z: float = 0,\
              feed_rate: int = 400):
         """
+        G02 movimientos circulares
+        https://howtomechatronics.com/tutorials/g-code-explained-list-of-most-important-g-code-commands/
+
         Parameters
         ----------
         x : float, optional
@@ -155,6 +158,43 @@ class Interface:
         print('He llegado')
         self.position = self.get_position()
 
+    def circular_move(self, xfinal: float, yfinal: float, xcentro: float,     \
+                      ycentro: float, move_to_right: bool = True):
+        """
+        Parameters
+        ----------
+        xfinal : float
+            Final position of x coordinate.
+        yfinal : float
+            Fianl position of y coordinate.
+        xcentro : float
+            x position of the center of the cicle, ALWAYS IN INCREMENTAL MODE
+            from the starting position.
+        ycentro : float
+            y position of the center of the cicle, ALWAYS IN INCREMENTAL MODE
+            from the starting position.
+        move_to_right : bool, optional
+            Move to the right if true or to the left if false.
+            The default is True.
+
+        """
+        if move_to_right:
+            line = f"G02 X{xfinal} Y{yfinal} I{xcentro} J{ycentro}"
+        else:
+            line = f"G02 X{xfinal} Y{yfinal} I{xcentro} J{ycentro}"
+
+        self.write(line+"\n")
+
+        self.it_moves = True
+        while self.it_moves is True:
+            data = self.serialport.read(1)
+            waiting = self.serialport.inWaiting()
+            data += self.serialport.read(waiting)
+            self._handle_data(data)
+            self.is_it_moving()
+
+        print('He llegado')
+        self.position = self.get_position()
 
     def _handle_data(self, data: str):
         """
