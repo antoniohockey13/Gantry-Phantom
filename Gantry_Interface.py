@@ -20,6 +20,7 @@ class Interface:
     G17: plano XY DO NOT CHANGE
     G90: absolut coordinates
     G91: relative coordinates
+    G10 P0 L20 Xx Yy Zz para cambiar posición G54
     """
 
     def __init__(self, path: str = 'COM3', baud: int =115200):
@@ -123,9 +124,6 @@ class Interface:
     def move(self, x: float = 0, y: float = 0, z: float = 0,\
              feed_rate: int = 400):
         """
-        G02 movimientos circulares
-        https://howtomechatronics.com/tutorials/g-code-explained-list-of-most-important-g-code-commands/
-
         Parameters
         ----------
         x : float, optional
@@ -161,6 +159,8 @@ class Interface:
     def circular_move(self, xfinal: float, yfinal: float, xcentro: float,     \
                       ycentro: float, move_to_right: bool = True):
         """
+        https://howtomechatronics.com/tutorials/g-code-explained-list-of-most-important-g-code-commands/
+
         Parameters
         ----------
         xfinal : float
@@ -181,7 +181,7 @@ class Interface:
         if move_to_right:
             line = f"G02 X{xfinal} Y{yfinal} I{xcentro} J{ycentro}"
         else:
-            line = f"G02 X{xfinal} Y{yfinal} I{xcentro} J{ycentro}"
+            line = f"G03 X{xfinal} Y{yfinal} I{xcentro} J{ycentro}"
 
         self.write(line+"\n")
 

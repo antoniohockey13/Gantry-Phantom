@@ -3,3 +3,6 @@
 
 # No subir pycache
 __pycache__
+
+# No ficheros .txt
+*.txt
