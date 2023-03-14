@@ -234,10 +234,17 @@ class Gantry:
         None.
 
         """
+        distancia_minima_wrt_gantry =                                         \
+            self.change_coordinates_source_to_gantry(self.distancia_minima,   \
+                                                     self.distancia_minima)
         if abs(y_wrts) < self.distancia_minima:
+            self._move_wrt_gantry(self.position[0],                           \
+                                  distancia_minima_wrt_gantry[1])
             self.move_first_x = False
         elif abs(x_wrts) < self.distancia_minima:
             self.move_first_x = True
+            self._move_wrt_gantry(distancia_minima_wrt_gantry[0],             \
+                                  self.position[1])
 
 
     def _move_wrt_gantry(self, x: float = 0, y: float = 0, z: float = 0,\
