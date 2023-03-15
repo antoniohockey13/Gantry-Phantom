@@ -39,6 +39,7 @@ class Gantry:
 
         self.gantry = Gantry_Interface.Interface(path, baud)
         self.gantry.connect() #the laptop connects with the gantry
+        self.position_wrts = self.position_source()
         self.position = self.gantry.get_position()
         self.gantry.other_commands('G17')
         self.gantry.other_commands('G21')
@@ -157,6 +158,15 @@ class Gantry:
         return(x_source, y_source)
     
     def position_source(self):
+        """
+        Set the positions respecto to the source in coordinates X and Y
+
+        Returns
+        -------
+        List[2]
+            Return the position in coordinates respect to the source.
+
+        """
         self.position = self.gantry.get_position()
         position_x_s, position_y_s = self.change_coordinates_gantry_to_source(self.position[0],\
                                                                            self.position[1])
@@ -247,8 +257,7 @@ class Gantry:
                                   self.position[1])
 
 
-    def _move_wrt_gantry(self, x: float = 0, y: float = 0, z: float = 0,\
-             feed_rate: int = 400):
+    def _move_wrt_gantry(self, x: float = 0, y: float = 0, feed_rate: int = 400):
         """
         It works on gantry coordinate system
 
@@ -261,9 +270,6 @@ class Gantry:
         y : float, optional
             Y position where the machine wants to be moved in mm.
             The default is 0. Max limit 345
-        z : float, optional
-            Z position where the machine wants to be moved in mm.
-            The default is 0.
         feed_rate: int, optional
             Feed rate. The default is 400
         Returns
@@ -276,11 +282,11 @@ class Gantry:
             self.position = self.gantry.get_position()
             # self.move_cuadrantes(x, y)
             if self.move_first_x:
-                self.gantry.move(x=x, y=self.position[1])
+                self.gantry.move(x=x, y=self.position[1], feed_rate = feed_rate)
                 # x=cte and move only coordinate Y
                 self.position = self.gantry.get_position()
                 # actualize position
-                self.gantry.move(x=self.position[0],y=y)
+                self.gantry.move(x=self.position[0],y=y, feed_rate = feed_rate)
                 # y=cte and move only coordinate X
                 self.position = self.gantry.get_position()
                 # actualize position
