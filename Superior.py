@@ -20,7 +20,7 @@ class Gantry:
     """
 
     def __init__(self, path: str = 'COM4', baud: int =115200,                 \
-                 file: str = 'parametros.txt'):
+                 file: str = 'parametos.txt'):
         """
         Initialization tasks
 
@@ -98,7 +98,7 @@ class Gantry:
 
         self.position = self.gantry.get_position()
 
-        self.limits(x_wrtg, y_wrtg)
+        self.check_limits(x_wrtg, y_wrtg)
         self.check_safety_distance(x_wrts, y_wrts)
         if self.inside_limits and self.safety_distance:
             self.check_order_movement(x_wrts, y_wrts)
@@ -155,7 +155,13 @@ class Gantry:
         x_source = self.x_source - x_wrtg
         y_source = self.y_source - y_wrtg
         return(x_source, y_source)
-
+    
+    def position_source(self):
+        self.position = self.gantry.get_position()
+        position_x_s, position_y_s = self.change_coordinates_gantry_to_source(self.position[0],\
+                                                                           self.position[1])
+        self.position_wrts = [position_x_s, position_y_s]
+        return self.position_wrts
 
     def check_limits(self, x_wrtg: float, y_wrtg: float):
         """
@@ -183,12 +189,6 @@ class Gantry:
         elif y_wrtg < self.y_min or y_wrtg > self.y_max:
             print('ERROR OUT OF MOMENT LIMIT IN COORDINATE Y')
             self.inside_limits = False
-        # elif self.x_source-self.distancia_minima < x and                      \
-        #      self.x_source+self.distancia_minima > x and                      \
-        #      self.y_source-self.distancia_minima < y and                      \
-        #      self.y_source+self.distancia_minima > y:
-        #     print('YOU ARE TRYING TO GO TOO CLOSE TO THE SOURCE')
-        #     self.inside_limits = False
         else:
             self.inside_limits = True
 
@@ -271,10 +271,10 @@ class Gantry:
         None.
 
         """
-        self.limits(x, y)
+        self.check_limits(x, y)
         if self.inside_limits:
             self.position = self.gantry.get_position()
-            self.move_cuadrantes(x, y)
+            # self.move_cuadrantes(x, y)
             if self.move_first_x:
                 self.gantry.move(x=x, y=self.position[1])
                 # x=cte and move only coordinate Y
@@ -347,9 +347,9 @@ class Gantry:
         None.
 
         """
-        xinitial = self.x_source
-        yinitial = self.y_source - radio
-        self.move(xinitial,yinitial)
+        xinitial = 0
+        yinitial = radio
+        self.move_wrt_source(xinitial,yinitial)
 
 
     def arco_giro(self, angle : float):
@@ -367,12 +367,14 @@ class Gantry:
 
         """
         self.position = self.gantry.get_position()
+        self.position_wrts = self.position_source()
         x_final, y_final = self.final_positions(angle)
-        self.limits(x_final, y_final)
+        
+        self.check_limits(x_final, y_final)
         if self.inside_limits:
             distancia_x, distancia_y = self.calcular_distancia()
             self.gantry.circular_move(x_final, y_final, distancia_x, distancia_y)
-            self.gantry.get_position()
+            self.position = self.gantry.get_position()
             self.inside_limits = False
         else:
             print('OUT OF LIMITS')
@@ -391,6 +393,7 @@ class Gantry:
         radioy = abs(self.position[1] - self.y_source)
         radio_movement = np.sqrt(radiox**2 + radioy**2)
         return radio_movement
+    
 
     def final_positions(self, angle : float):
         """
@@ -409,8 +412,12 @@ class Gantry:
             Final position of the gantry in coordinate X.
 
         """
-        x_final = self.x_source + self.radio_movement() * np.sin(angle)
-        y_final = self.y_source - self.radio_movement() * np.cos(angle)
+        self.position_wrts = self.position_source()
+        position_x_s = self.position_wrts[0]
+        position_y_s = self.position_wrts[1]
+        x_final_wrts = -position_x_s*np.cos(angle) + position_y_s*np.sin(angle)
+        y_final_wrts = -position_x_s*np.sin(angle) + position_y_s*np.cos(angle)
+        x_final, y_final = self.change_coordinates_source_to_gantry(x_final_wrts, y_final_wrts)
         return x_final,y_final
 
     def calcular_distancia(self):
@@ -455,88 +462,4 @@ class Gantry:
         """
         self.set_initial_position(np.sqrt(2)*self.distancia_minima)
         self.arco_giro(2*np.pi)
-
-    def cuadrantes(self, x : float, y : float):
-        if x > self.x_min and x <= self.x_source-self.distancia_minima        \
-            and y> self.y_min and y<=self.y_source-self.distancia_minima:
-            return 1
-        elif x > self.x_source-self.distancia_minima and                      \
-             x < self.x_source+self.distancia_minima and y > self.y_min and   \
-             y <= self.y_source-self.distancia_minima:
-            return 2
-        elif x >= self.x_source+self.distancia_minima and x < self.x_max and  \
-            y > self.y_min and y <= self.y_source-self.distancia_minima:
-            return 3
-        elif x > self.x_min and x <= self.x_source-self.distancia_minima and  \
-             y>self.y_source-self.distancia_minima and                        \
-             y<self.y_source+ self.distancia_minima:
-            return 4
-        elif x >= self.x_source+self.distancia_minima and x < self.x_max and  \
-             y>self.y_source-self.distancia_minima\
-            and y<self.y_source+ self.distancia_minima:
-            return 6
-        elif x>1 and x<=self.x_source-self.distancia_minima and y >=          \
-            self.y_source+self.distancia_minima and y < 345:
-            return 7
-        elif x>self.x_source-self.distancia_minima and x<self.x_source+self.distancia_minima\
-            and y>=self.y_source+self.distancia_minima and y<345:
-            return 8
-        elif x>=self.x_source+self.distancia_minima and x<344 and \
-            y>=self.y_source+self.distancia_minima and y<345:
-            return 9
-        else:
-            print('OUT OF LIMITS')
-            return -1
-
-    def move_cuadrantes(self, x : float, y :float):
-        cuadrante_final = self.cuadrantes(x, y)
-        self.position = self.gantry.get_position()
-        cuadrante_inicial = self.cuadrantes(self.position[0], self.position[1])
-        if cuadrante_inicial == 1:
-            if cuadrante_final == 6:
-                self.move_first_x = True
-            if cuadrante_final == 8:
-                self.move_first_x = False
-        if cuadrante_inicial == 2:
-            if cuadrante_final == 4 or cuadrante_final == 6 or cuadrante_final == 7\
-                or cuadrante_final == 9:
-                self.move_first_x = True
-            if cuadrante_final == 8:
-                self.move(x = self.x_source - self.distancia_minima,y=self.position[1])
-                self.move(x,y)
-        if cuadrante_inicial == 3:
-            if cuadrante_final == 4:
-                self.move_first_x = True
-            if cuadrante_final == 8:
-                self.move_first_x = False
-        if cuadrante_inicial == 4:
-            if cuadrante_final == 2 or cuadrante_final == 3 or cuadrante_final == 8\
-                or cuadrante_final == 9:
-                self.move_first_x = False
-            if cuadrante_final == 6:
-                self.move(x = self.position[0], y = self.y_source - self.distancia_minima)
-                self.move(x,y)
-        if cuadrante_inicial == 6:
-            if cuadrante_final == 1 or cuadrante_final == 2 or cuadrante_final == 7\
-                or cuadrante_final == 8:
-                self.move_first_x = False
-            if cuadrante_final == 4:
-                self.move(x = self.position[0], y = self.y_source - self.distancia_minima)
-                self.move(x,y)
-        if cuadrante_inicial == 7:
-            if cuadrante_final == 2:
-                self.move_first_x = False
-            if cuadrante_final == 6:
-                self.move_first_x = False
-        if cuadrante_inicial == 8:
-            if cuadrante_final == 1 or cuadrante_final == 3 or cuadrante_final == 4\
-                or cuadrante_final == 6:
-                self.move_first_x = True
-            if cuadrante_final == 2:
-                self.move(x = self.x_source - self.distancia_minima,y=self.position[1])
-                self.move(x,y)
-        if cuadrante_inicial == 9:
-            if cuadrante_final == 2:
-                self.move_first_x = False
-            if cuadrante_final == 4:
-                self.move_first_x = True
+        
