@@ -36,7 +36,9 @@ class Gantry:
             Name of the file where all parameter will be read
 
         """
-
+        self.x_source, self.y_source, self.x_gantry, self.y_gantry,           \
+            self.distancia_minima, self.x_min, self.x_max, self.y_min,        \
+                self.y_max = Read_File.digest_input(file)
         self.gantry = Gantry_Interface.Interface(path, baud)
         self.gantry.connect() #the laptop connects with the gantry
         self.position_wrts = self.position_source()
@@ -47,9 +49,7 @@ class Gantry:
         self.gantry.other_commands('G55')
         self.gantry.other_commands('G94')
 
-        self.x_source, self.y_source, self.x_gantry, self.y_gantry,           \
-            self.distancia_minima, self.x_min, self.x_max, self.y_min,        \
-                self.y_max = Read_File.digest_input(file)
+        
 
         self.inside_limits = False
         # Used to know if the movement is inside limits, updated in
@@ -257,7 +257,7 @@ class Gantry:
                                   self.position[1])
 
 
-    def _move_wrt_gantry(self, x: float = 0, y: float = 0, feed_rate: int = 400):
+    def _move_wrt_gantry(self, x: float = 0, y: float = 0, z: float = 0, feed_rate: int = 400):
         """
         It works on gantry coordinate system
 
