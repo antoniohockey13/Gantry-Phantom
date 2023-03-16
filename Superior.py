@@ -4,17 +4,11 @@ Created on Tue Mar  7 10:53:04 2023
 
 @author: antia
 """
-import time
 import numpy as np
 import Gantry_Interface
 import Read_File
 
-
-#TO DO: Decidir cuantos cuadrantes queremos
-#TO DO: queremos hacerlo para que gire en sentido horario y antihorario?
-
-
-class Gantry:
+class Gantry(Gantry_Interface.Interface):
     """
     This class is a superior module of Gantry_Interface
     """
@@ -39,17 +33,18 @@ class Gantry:
         self.x_source, self.y_source, self.x_gantry, self.y_gantry,           \
             self.distancia_minima, self.x_min, self.x_max, self.y_min,        \
                 self.y_max = Read_File.digest_input(file)
-        self.gantry = Gantry_Interface.Interface(path, baud)
-        self.gantry.connect() #the laptop connects with the gantry
-        self.position_wrts = self.position_source()
-        self.position = self.gantry.get_position()
-        self.gantry.other_commands('G17')
-        self.gantry.other_commands('G21')
-        self.gantry.other_commands('G90')
-        self.gantry.other_commands('G55')
-        self.gantry.other_commands('G94')
+        super().__init__(path, baud)
 
-        
+        self.connect() #the laptop connects with the gantry
+        self.position_wrts = self.position_source()
+        self.position = self.get_position()
+        self.other_commands('G17')
+        self.other_commands('G21')
+        self.other_commands('G90')
+        self.other_commands('G55')
+        self.other_commands('G94')
+
+
 
         self.inside_limits = False
         # Used to know if the movement is inside limits, updated in
@@ -68,7 +63,7 @@ class Gantry:
         function at the end of the use.
         This function is already done in Gantry_Interface.py
         """
-        self.gantry.disconnect()
+        self.disconnect()
 
     def move_wrt_source(self, x_wrts: float, y_wrts: float, z: float = 0,               \
                         feed_rate: int = 400):
@@ -97,7 +92,7 @@ class Gantry:
         x_wrtg, y_wrtg =                                                      \
             self.change_coordinates_source_to_gantry(x_wrts, y_wrts)
 
-        self.position = self.gantry.get_position()
+        self.position = self.get_position()
 
         self.check_limits(x_wrtg, y_wrtg)
         self.check_safety_distance(x_wrts, y_wrts)
@@ -156,7 +151,7 @@ class Gantry:
         x_source = self.x_source - x_wrtg
         y_source = self.y_source - y_wrtg
         return(x_source, y_source)
-    
+
     def position_source(self):
         """
         Set the positions respecto to the source in coordinates X and Y
@@ -167,7 +162,7 @@ class Gantry:
             Return the position in coordinates respect to the source.
 
         """
-        self.position = self.gantry.get_position()
+        self.position = self.get_position()
         position_x_s, position_y_s = self.change_coordinates_gantry_to_source(self.position[0],\
                                                                            self.position[1])
         self.position_wrts = [position_x_s, position_y_s]
@@ -192,7 +187,7 @@ class Gantry:
         None.
 
         """
-        self.position = self.gantry.get_position()
+        self.position = self.get_position()
         if x_wrtg < self.x_min or x_wrtg > self.x_max:
             print('ERROR OUT OF MOMENT LIMIT IN COORDINATE X')
             self.inside_limits = False
@@ -257,7 +252,8 @@ class Gantry:
                                   self.position[1])
 
 
-    def _move_wrt_gantry(self, x: float = 0, y: float = 0, z: float = 0, feed_rate: int = 400):
+    def _move_wrt_gantry(self, x: float = 0, y: float = 0, z: float = 0,      \
+                         feed_rate: int = 400):
         """
         It works on gantry coordinate system
 
@@ -279,25 +275,29 @@ class Gantry:
         """
         self.check_limits(x, y)
         if self.inside_limits:
-            self.position = self.gantry.get_position()
+            self.position = self.get_position()
             # self.move_cuadrantes(x, y)
             if self.move_first_x:
-                self.gantry.move(x=x, y=self.position[1], feed_rate = feed_rate)
+                self.move(x = x, y = self.position[1], z = z,                 \
+                          feed_rate = feed_rate)
                 # x=cte and move only coordinate Y
-                self.position = self.gantry.get_position()
+                self.position = self.get_position()
                 # actualize position
-                self.gantry.move(x=self.position[0],y=y, feed_rate = feed_rate)
+                self.move(x = self.position[0],y = y, z = z,                  \
+                          feed_rate = feed_rate)
                 # y=cte and move only coordinate X
-                self.position = self.gantry.get_position()
+                self.position = self.get_position()
                 # actualize position
             else:
-                self.gantry.move(x=self.position[0],y=y)
+                self.move(x = self.position[0], y = y, z = z,                 \
+                          feed_rate = feed_rate)
                 # y=cte and move only coordinate X
-                self.position = self.gantry.get_position()
+                self.position = self.get_position()
                 # actualize position
-                self.gantry.move(x=x, y=self.position[1])
+                self.move(x = x, y = self.position[1], z = z,                 \
+                          feed_rate = feed_rate)
                 # x=cte and move only coordinate Y
-                self.position = self.gantry.get_position()
+                self.position = self.get_position()
                 # actualize position
 
             self.inside_limits = False
@@ -328,7 +328,7 @@ class Gantry:
         None.
 
         """
-        self.gantry.move(x,y,z,feed_rate)
+        self.move(x,y,z,feed_rate)
 
 
     def _hard_homing(self):
@@ -337,7 +337,7 @@ class Gantry:
         where it looks for the limits and recolocates the (0,0) position.
         Important for calibration
         """
-        self.gantry.hard_homing_cycle()
+        self.hard_homing_cycle()
 
     def set_initial_position(self, radio : float):
         """
@@ -372,18 +372,22 @@ class Gantry:
         None.
 
         """
-        self.position = self.gantry.get_position()
-        self.position_wrts = self.position_source()
-        x_final, y_final = self.final_positions(angle)
-        
-        self.check_limits(x_final, y_final)
-        if self.inside_limits:
-            distancia_x, distancia_y = self.calcular_distancia()
-            self.gantry.circular_move(x_final, y_final, distancia_x, distancia_y)
-            self.position = self.gantry.get_position()
-            self.inside_limits = False
+        if angle == 0:
+            print('No me tengo que mover')
         else:
-            print('OUT OF LIMITS')
+
+            self.position = self.get_position()
+            self.position_wrts = self.position_source()
+            x_final, y_final = self.final_positions(angle)
+
+            self.check_limits(x_final, y_final)
+            if self.inside_limits:
+                distancia_x, distancia_y = self.calcular_distancia()
+                self.circular_move(x_final, y_final, distancia_x, distancia_y)
+                self.position = self.get_position()
+                self.inside_limits = False
+            else:
+                print('OUT OF LIMITS')
 
     def radio_movement(self):
         """
@@ -399,7 +403,7 @@ class Gantry:
         radioy = abs(self.position[1] - self.y_source)
         radio_movement = np.sqrt(radiox**2 + radioy**2)
         return radio_movement
-    
+
 
     def final_positions(self, angle : float):
         """
@@ -468,4 +472,3 @@ class Gantry:
         """
         self.set_initial_position(np.sqrt(2)*self.distancia_minima)
         self.arco_giro(2*np.pi)
-        
