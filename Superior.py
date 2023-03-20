@@ -54,7 +54,6 @@ class Gantry(Gantry_Interface.Interface):
         # Used to know if the movement is outside the source range, updated in
         # check_safety_distance()
 
-        self.move_first_x = True
 
 
     def disconnect(self):
@@ -93,15 +92,92 @@ class Gantry(Gantry_Interface.Interface):
             self.change_coordinates_source_to_gantry(x_wrts, y_wrts)
 
         self.position = self.get_position()
-
+        self.position_wrts = self.position_source()
         self.check_limits(x_wrtg, y_wrtg)
         self.check_safety_distance(x_wrts, y_wrts)
+        self.check_intersection(x_wrts, y_wrts, self.position_wrts[0], \
+                                self.position_wrts[1])
         if self.inside_limits and self.safety_distance:
-            self.check_order_movement(x_wrts, y_wrts)
-            self._move_wrt_gantry(x_wrtg, y_wrtg, z, feed_rate)
+            if self.intersect:
+                # Square movement
+                quadrant = self.check_quadrant()
+                # Check in what quadrant is the gantry
+                self.move_cuadrado(quadrant, feed_rate)
+                # Moves to the closest corner to the source of the quadrant
+                self.move_next_corner(quadrant, feed_rate)
+                # Moves to the next corner in clockwise
+                self.move_wrt_source(x_wrts, y_wrts)
+                # restart the function to get the wanted final position
+
+            else:
+                self._move_wrt_gantry(x_wrtg, y_wrtg, z, feed_rate)
 
         #Reinitialize safety measures
         self.inside_limits = self.safety_distance = False
+        self.position = self.get_position()
+        self.position_wrts = self.position_source()
+
+
+    def move_cuadrado(self, quadrant: int,  feed_rate: float):
+        """
+        Moves to the closest corner to the source of the quadrant
+
+        Parameters
+        ----------
+        quadrant : int
+            The current quadrant of the gantry.
+        feed_rate : float
+            Feed rate. The default is 400.
+        """
+
+        if quadrant == 1:
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          self.distancia_minima, self.distancia_minima)
+        if quadrant == 2:
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          -self.distancia_minima, self.distancia_minima)
+        if quadrant == 3:
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          -self.distancia_minima, -self.distancia_minima)
+        if quadrant == 4:
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          self.distancia_minima, -self.distancia_minima)
+        self._move_wrt_gantry(distancia_x_wrtg, distancia_y_wrtg, 0, feed_rate)
+
+
+    def move_next_corner(self, quadrant, feed_rate):
+        """
+        Moves to the next corner in clockwise
+
+        Parameters
+        ----------
+        quadrant : int
+            The current quadrant of the gantry.
+        feed_rate : float
+            Feed rate. The default is 400.
+        """
+        if quadrant == 1: # Si estas en la esquina 1 mueveta a la 4
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          self.distancia_minima, -self.distancia_minima)
+        if quadrant == 2: # 2--> 1
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          self.distancia_minima, self.distancia_minima)
+        if quadrant == 3: # 3 --> 2
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          -self.distancia_minima, self.distancia_minima)
+        if quadrant == 4: # 4 --> 3
+            distancia_x_wrtg, distancia_y_wrtg =                              \
+                self.change_coordinates_source_to_gantry(                     \
+                          -self.distancia_minima, -self.distancia_minima)
+
+        self._move_wrt_gantry(distancia_x_wrtg, distancia_y_wrtg, 0, feed_rate)
 
 
     def change_coordinates_source_to_gantry(self, x_wrts: float,              \
@@ -222,40 +298,39 @@ class Gantry(Gantry_Interface.Interface):
             self.safety_distance = False
             print('Too close to the source')
 
-    def check_order_movement(self, x_wrts: float, y_wrts: float):
-        """
-        Checks what axis is needed to move first
-        Updates self.move_first_x
+    def check_intersection(self, x_wrts, y_wrts, x_f, y_f):
 
-        Parameters
-        ----------
-        x_wrts : float
-            X position in source coordinate.
-        y_wrts : float
-            Y position in source coordinate.
+        m = (y_wrts - y_f)/(x_wrts - x_f)
+        n = -m*x_f + y_f
+        b = 2*n*m
+        a = m**2+1
+        c = n**2-self.distancia_minima**2
+        discriminante = b**2-4*a*c
 
-        Returns
-        -------
-        None.
 
-        """
-        distancia_minima_wrt_gantry =                                         \
-            self.change_coordinates_source_to_gantry(self.distancia_minima,   \
-                                                     self.distancia_minima)
-        if abs(y_wrts) < self.distancia_minima:
-            self._move_wrt_gantry(self.position[0],                           \
-                                  distancia_minima_wrt_gantry[1])
-            self.move_first_x = False
-        elif abs(x_wrts) < self.distancia_minima:
-            self.move_first_x = True
-            self._move_wrt_gantry(distancia_minima_wrt_gantry[0],             \
-                                  self.position[1])
+        if discriminante <= 0:
+            self.intersect = False
+        else:
+            self.intersect = True
 
+    def check_quadrant(self):
+        x_wrts, y_wrts = self.position_wrts
+        if y_wrts >= 0:
+            if x_wrts >= 0:
+                return 1
+            elif x_wrts < 0:
+                return 2
+        elif y_wrts < 0:
+            if x_wrts < 0:
+                return 3
+            elif x_wrts >= 0:
+                return 4
 
     def _move_wrt_gantry(self, x: float = 0, y: float = 0, z: float = 0,      \
                          feed_rate: int = 400):
         """
-        It works on gantry coordinate system
+        It works on gantry coordinate system. It does NOT check safety
+        measures
 
 
         Parameters
@@ -273,63 +348,7 @@ class Gantry(Gantry_Interface.Interface):
         None.
 
         """
-        self.check_limits(x, y)
-        if self.inside_limits:
-            self.position = self.get_position()
-            # self.move_cuadrantes(x, y)
-            if self.move_first_x:
-                self.move(x = x, y = self.position[1], z = z,                 \
-                          feed_rate = feed_rate)
-                # x=cte and move only coordinate Y
-                self.position = self.get_position()
-                # actualize position
-                self.move(x = self.position[0],y = y, z = z,                  \
-                          feed_rate = feed_rate)
-                # y=cte and move only coordinate X
-                self.position = self.get_position()
-                # actualize position
-            else:
-                self.move(x = self.position[0], y = y, z = z,                 \
-                          feed_rate = feed_rate)
-                # y=cte and move only coordinate X
-                self.position = self.get_position()
-                # actualize position
-                self.move(x = x, y = self.position[1], z = z,                 \
-                          feed_rate = feed_rate)
-                # x=cte and move only coordinate Y
-                self.position = self.get_position()
-                # actualize position
-
-            self.inside_limits = False
-        else:
-            print('OUT OF LIMITS')
-
-
-
-
-    def _hard_move(self, x: float = 0, y: float = 0, z: float = 0,\
-             feed_rate: int = 400):
-        """
-        This function permits move the gantry without limits.
-
-        Parameters
-        ----------
-        x : float, optional
-            X position where the machine wants to be moved in mm.. The default is 0.
-        y : float, optional
-            Y position where the machine wants to be moved in mm.. The default is 0.
-        z : float, optional
-            Z position where the machine wants to be moved in mm.. The default is 0.
-        feed_rate : int, optional
-            Feed rate. The default is 400.
-
-        Returns
-        -------
-        None.
-
-        """
-        self.move(x,y,z,feed_rate)
-
+        self.move(x, y, z, feed_rate)
 
     def _hard_homing(self):
         """
