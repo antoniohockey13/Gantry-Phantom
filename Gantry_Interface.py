@@ -23,7 +23,8 @@ class Interface:
     G10 P0 L20 Xx Yy Zz para cambiar posición G54
     """
 
-    def __init__(self, path: str = 'COM3', baud: int =115200):
+    def __init__(self, path: str = 'COM3', baud: int =115200,                 \
+                 verbose: bool = False):
         """
         Initialization tasks
 
@@ -35,6 +36,8 @@ class Interface:
             The default is 'COM3'.
         baud : int, optional
             The baud rate. The default is 115200.
+        verbose : bool, optional
+            If true all prints will be done. Default False
         """
 
         self.path = path
@@ -42,6 +45,7 @@ class Interface:
         self._do_receive = False
         self._position_counter = 0
         self._move_counter = 0
+        self.verbose = verbose
 
     def connect(self):
         """
@@ -60,6 +64,7 @@ class Interface:
             self.serialport.flushOutput()
             self._do_receive = True
             self.position = self.get_position()
+            print('Connection done')
         else:
             print('Ya se ha realizado la conexión')
 
@@ -114,7 +119,8 @@ class Interface:
                             float(position[2])]
                 return position
             else:
-                print('No he leido el MPos')
+                if self.verbose:
+                    print('No he leido el MPos')
                 self.get_position()
                 self._position_counter += 1
         except IndexError:
@@ -214,7 +220,9 @@ class Interface:
         try:
             asci = data.decode("ascii")
         except UnicodeDecodeError:
-            print(": Received a non-ascii byte. Probably junk. Dropping it.")
+            if self.verbose:
+                print(": Received a non-ascii byte. Probably junk.           "\
+                      "Dropping it.")
             asci = ""
         return asci
 
@@ -236,7 +244,8 @@ class Interface:
             num_written = self.serialport.write(bytes(data,"ascii"))
             return num_written
         else:
-            print(" nothing to write")
+            if self.verbose:
+                print(" nothing to write")
 
     def get_help(self):
         """
@@ -370,7 +379,8 @@ class Interface:
                 self.it_moves = True
 
             else:
-                print(f'data = {data} \n asci = {asci}')
+                if self.verbose:
+                    print(f'data = {data} \n asci = {asci}')
                 self._move_counter += 1
                 self.is_it_moving()
         except IndexError:
@@ -412,7 +422,8 @@ class Interface:
             waiting = self.serialport.inWaiting()
             data += self.serialport.read(waiting)
             asci = self._handle_data(data)
-            print(asci)
+            if self.verbose:
+                print(asci)
             return asci
         else:
             print('You are not connected to any device')
@@ -453,3 +464,19 @@ class Interface:
         Immediately sends `Ctrl-X` to Grbl.
         """
         self.write("\x18")
+
+    def change_verbose(self, verbose):
+        """
+        Update the value of verbose
+
+        Parameters
+        ----------
+        verbose : bool
+            If True all prints will be made.
+        """
+        self.verbose = verbose
+        print('Done')
+
+    def print_position(self):
+        self.position = self.get_position()
+        print(self.position)

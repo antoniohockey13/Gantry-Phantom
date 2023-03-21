@@ -1,9 +1,9 @@
 ### Fichero para introducir los valores de tamaño y límites de moviemiento del gantry y la posición relativa de la fuente en coordenadas gantry ###
 
 x_source           169
-y_source           150
-distancia_minima   2
-x_min              1
-x_max              344
-y_min              1
-y_max              345
+y_source             150
+distancia_minima     2
+x_min                1
+x_max                344
+y_min                1
+y_max                345

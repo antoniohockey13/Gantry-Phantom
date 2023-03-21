@@ -4,6 +4,7 @@ Created on Fri Mar 10 12:18:00 2023
 
 @author: Antonio
 """
+import pandas as pd
 
 def digest_input(file: str):
     """
@@ -45,27 +46,20 @@ def digest_input(file: str):
 
     #   We open the file from which we are going to read the input
     try:
-        with open(file, "r") as input_file:
-            for line in input_file :
-                # lines are separated by blank spaces
-                words = line.split()
-                # if the line is only a blanck line, we discard it and
-                # proceed with the next one
-                if len(words) > 1 :
-                    if words[0].lower() == "x_source":
-                        x_source = float(words[1])
-                    if words[0].lower() == "y_source":
-                        y_source = float(words[1])
-                    if words[0].lower() == "distancia_minima":
-                        distancia_minima = float(words[1])
-                    if words[0].lower() == "x_min":
-                        x_min = float(words[1])
-                    if words[0].lower() == "x_max":
-                        x_max = float(words[1])
-                    if words[0].lower() == "y_min":
-                        y_min = float(words[1])
-                    if words[0].lower() == "y_max":
-                        y_max = float(words[1])
+
+        df = pd.read_fwf('parametos.txt', header = None)
+
+        for ifile in range(df.shape[0]):
+            if df[0].str.split().str[0].str[0] [ifile] == '#':
+                df2 = df.drop(ifile, axis = 0, inplace = False)
+
+        x_source = float(df2.loc[df2[0] == 'x_source'][1])
+        y_source = float(df2.loc[df2[0] == 'y_source'][1])
+        distancia_minima = float(df2.loc[df2[0] == 'distancia_minima'][1])
+        x_min = float(df2.loc[df2[0] == 'x_min'][1])
+        y_min = float(df2.loc[df2[0] == 'y_min'][1])
+        x_max = float(df2.loc[df2[0] == 'x_max'][1])
+        y_max = float(df2.loc[df2[0] == 'y_max'][1])
 
     except IOError:
         print(f"The file {file} does not exist")

@@ -115,14 +115,13 @@ class Gantry(Gantry_Interface.Interface):
         # distance.
         self.check_safety_distance(x_wrts, y_wrts)
 
-        # Check if there is an intersection between the current position and
-        # the desired position of the machine.
-        self.check_intersection(x_wrts, y_wrts, self.position_wrts[0],        \
-                                self.position_wrts[1])
-
         # If the machine is within the limits and safety distance, move the
         # machine.
         if self.inside_limits and self.safety_distance:
+            # Check if there is an intersection between the current position
+            # and the desired position of the machine with the source.
+            self.check_intersection(x_wrts, y_wrts, self.position_wrts[0],        \
+                                    self.position_wrts[1])
             if self.intersect:
                 # Square movement
                 quadrant = self.check_quadrant()
@@ -363,17 +362,25 @@ class Gantry(Gantry_Interface.Interface):
         None.
 
         """
-        m = (y_wrts - y_f)/(x_wrts - x_f)
-        n = -m*x_f + y_f
-        b = 2*n*m
-        a = m**2+1
-        c = n**2-self.distancia_minima**2
-        discriminante = b**2-4*a*c
-
-        if discriminante <= 0:
-            self.intersect = False
+        if x_wrts == x_f and abs(x_f)< self.distancia_minima:
+            # Si movimiento vertical dentro del rango de la fuente
+            if y_wrts*y_f < 0:
+                # Si cambio de signo en y --> choca
+                self.intersect = True
+            else:
+                self.intersect = False
         else:
-            self.intersect = True
+            m = (y_wrts - y_f)/(x_wrts - x_f)
+            n = -m*x_f + y_f
+            b = 2*n*m
+            a = m**2+1
+            c = n**2-self.distancia_minima**2
+            discriminante = b**2-4*a*c
+
+            if discriminante <= 0:
+                self.intersect = False
+            else:
+                self.intersect = True
 
     def check_quadrant(self):
         """
@@ -420,6 +427,7 @@ class Gantry(Gantry_Interface.Interface):
         None.
 
         """
+        print('Linear move')
         self.move(x, y, z, feed_rate)
 
     def _hard_homing(self):
@@ -433,6 +441,7 @@ class Gantry(Gantry_Interface.Interface):
         -------
         None
         """
+        print('Hard home cycle')
 
         self.hard_homing_cycle()
 
@@ -476,6 +485,7 @@ class Gantry(Gantry_Interface.Interface):
 
             self.check_limits(x_final, y_final)
             if self.inside_limits:
+                print('Circular move')
                 distancia_x, distancia_y = self.calcular_distancia()
                 self.circular_move(x_final, y_final, distancia_x, distancia_y)
                 self.position = self.get_position()
@@ -567,3 +577,7 @@ class Gantry(Gantry_Interface.Interface):
         """
         self.set_initial_position(np.sqrt(2)*self.distancia_minima)
         self.arco_giro(2*np.pi)
+
+    def print_position_wrt_source(self):
+        self.position_wrts = self.position_source()
+        print(self.position_wrts)
