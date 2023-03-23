@@ -7,6 +7,8 @@ Created on Tue Mar  7 10:53:04 2023
 import numpy as np
 import Gantry_Interface
 import Read_File
+import Utility_Functions
+
 
 class Gantry(Gantry_Interface.Interface):
     """
@@ -122,6 +124,7 @@ class Gantry(Gantry_Interface.Interface):
             # and the desired position of the machine with the source.
             self.check_intersection(x_wrts, y_wrts, self.position_wrts[0],        \
                                     self.position_wrts[1])
+            print(self.intersect)
             if self.intersect:
                 # Square movement
                 quadrant = self.check_quadrant()
@@ -362,25 +365,14 @@ class Gantry(Gantry_Interface.Interface):
         None.
 
         """
-        if x_wrts == x_f and abs(x_f)< self.distancia_minima:
-            # Si movimiento vertical dentro del rango de la fuente
-            if y_wrts*y_f < 0:
-                # Si cambio de signo en y --> choca
+        points = Utility_Functions.generate_trajectory(x_wrts, y_wrts,     \
+                                                      x_f, y_f)
+        self.intersect = False
+        for i in range(len(points)):
+            if points[i,0]**2+points[i,1]**2 < self.distancia_minima**2:
                 self.intersect = True
-            else:
-                self.intersect = False
-        else:
-            m = (y_wrts - y_f)/(x_wrts - x_f)
-            n = -m*x_f + y_f
-            b = 2*n*m
-            a = m**2+1
-            c = n**2-self.distancia_minima**2
-            discriminante = b**2-4*a*c
-
-            if discriminante <= 0:
-                self.intersect = False
-            else:
-                self.intersect = True
+                print(self.intersect)
+                break
 
     def check_quadrant(self):
         """
