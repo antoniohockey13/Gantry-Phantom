@@ -6,9 +6,11 @@ Created on Tue Mar 21 10:04:32 2023
 """
 import time
 import numpy as np
-import Superior
+import Gantry
+import utility
+import Acquisition
 
-class Gantry_Phantom(Superior.Gantry):
+class Gantry_Phantom(Gantry.Gantry):
     """
     This class represents a Gantry_Phantom object that inherits from the
     Superior.Gantry class. It provides methods for moving the gantry in a
@@ -27,7 +29,11 @@ class Gantry_Phantom(Superior.Gantry):
         file (str): The name of the file containing the parameters for the
                     gantry.
         """
-        super().__init__(path, baud)
+        utility.go_to_phantom_absolute_path()
+        utility.change_to_directory('Gantry')
+        super().__init__(path, baud, file)
+        utility.go_to_phantom_absolute_path()
+
 
     def move_linear(self, x: float, y: float, feed_rate: int = 400):
         """
@@ -57,12 +63,10 @@ class Gantry_Phantom(Superior.Gantry):
         """
         angle = 2 * np.pi / n_measures
         self.set_radius(radius)
-        time.sleep(2)
-        print('Measuring')
+        Acquisition.Measure.measures(1)
         for i in range(1, n_measures):
             self.move_circular(angle)
-            time.sleep(2)
-            print('Measuring')
+            Acquisition.measures(1)
 
     def set_radius(self, radius: float):
         """
@@ -84,4 +88,5 @@ class Gantry_Phantom(Superior.Gantry):
         angle: float
             The angle to move the device by, in radians
         """
+        print('Move circular')
         self.arco_giro(angle)
