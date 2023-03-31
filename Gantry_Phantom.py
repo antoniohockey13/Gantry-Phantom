@@ -34,6 +34,20 @@ class Gantry_Phantom(Gantry.Gantry):
         super().__init__(path, baud, file)
         utility.go_to_phantom_absolute_path()
 
+    def all_measurements(self, num_radius: int, n_measures: int):
+        """
+        Parameters
+        ----------
+        num_radius : int
+            Number of circles in which gantry will measure.
+        n_measures : int
+            The number of measurements to take in each circle.
+        """
+        radio_max = self.y_source - self.y_min
+        radius = np.linspace(self.distancia_minima, radio_max, num_radius)
+        for iradio in radius:
+            self.measurements(iradio, n_measures)
+
 
     def move_linear(self, x: float, y: float, feed_rate: int = 400):
         """

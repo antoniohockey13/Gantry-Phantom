@@ -568,7 +568,7 @@ class Gantry(gantry_gcode_interface.Interface):
         180 degrees.
 
         """
-        self.set_initial_position(np.sqrt(2)*self.distancia_minima)
+        self.set_initial_position(self.distancia_minima)
         self.arco_giro(2*np.pi)
 
     def print_position_wrt_source(self):
