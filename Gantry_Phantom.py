@@ -66,7 +66,7 @@ class Gantry_Phantom(Gantry.Gantry):
         Acquisition.Measure.measures(1)
         for i in range(1, n_measures):
             self.move_circular(angle)
-            Acquisition.measures(1)
+            Acquisition.Measure.measures(1)
 
     def set_radius(self, radius: float):
         """

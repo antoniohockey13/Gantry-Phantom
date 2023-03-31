@@ -472,14 +472,13 @@ class Gantry(gantry_gcode_interface.Interface):
             self.position = self.get_position()
             self.position_wrts = self.position_source()
             x_final, y_final = self.final_positions(angle)
-            print(self.position, self.position_wrts)
-            print(x_final,y_final)
 
             self.check_limits(x_final, y_final)
             if self.inside_limits:
                 print(f'Circular move, angle={angle:.3f}')
                 distancia_x, distancia_y = self.calcular_distancia()
-                print(distancia_x, distancia_y)
+
+
 
                 self.circular_move(x_final, y_final, distancia_x, distancia_y)
                 self.position = self.get_position()
@@ -523,7 +522,7 @@ class Gantry(gantry_gcode_interface.Interface):
         self.position_wrts = self.position_source()
         position_x_s = self.position_wrts[0]
         position_y_s = self.position_wrts[1]
-        x_final_wrts = -position_x_s*np.cos(angle) + position_y_s*np.sin(angle)
+        x_final_wrts = position_x_s*np.cos(angle) + position_y_s*np.sin(angle)
         y_final_wrts = -position_x_s*np.sin(angle) + position_y_s*np.cos(angle)
         x_final, y_final = self.change_coordinates_source_to_gantry(          \
                                                     x_final_wrts, y_final_wrts)
