@@ -5,18 +5,17 @@ Created on Tue Mar  7 10:53:04 2023
 @author: antia
 """
 import numpy as np
-import Gantry_Interface
-import Read_File
-import Utility_Functions
+from . import gantry_gcode_interface
+from . import gantry_utility_functions
 
 
-class Gantry(Gantry_Interface.Interface):
+class Gantry(gantry_gcode_interface.Interface):
     """
     This class is a superior module of Gantry_Interface
     """
 
     def __init__(self, path: str = 'COM4', baud: int =115200,                 \
-                 file: str = 'parametos.txt'):
+                 file: str = 'parametros.txt'):
         """
         Initializes the Gantry object with the given parameters.
 
@@ -48,7 +47,7 @@ class Gantry(Gantry_Interface.Interface):
         """
         self.x_source, self.y_source, self.x_gantry, self.y_gantry,           \
             self.distancia_minima, self.x_min, self.x_max, self.y_min,        \
-                self.y_max = Read_File.digest_input(file)
+                self.y_max = gantry_utility_functions.digest_input(file)
         super().__init__(path, baud)
 
         self.connect() #the laptop connects with the gantry
@@ -124,7 +123,6 @@ class Gantry(Gantry_Interface.Interface):
             # and the desired position of the machine with the source.
             self.check_intersection(x_wrts, y_wrts, self.position_wrts[0],        \
                                     self.position_wrts[1])
-            print(self.intersect)
             if self.intersect:
                 # Square movement
                 quadrant = self.check_quadrant()
@@ -365,13 +363,12 @@ class Gantry(Gantry_Interface.Interface):
         None.
 
         """
-        points = Utility_Functions.generate_trajectory(x_wrts, y_wrts,     \
+        points = gantry_utility_functions.generate_trajectory(x_wrts, y_wrts,     \
                                                       x_f, y_f)
         self.intersect = False
         for i in range(len(points)):
             if points[i,0]**2+points[i,1]**2 < self.distancia_minima**2:
                 self.intersect = True
-                print(self.intersect)
                 break
 
     def check_quadrant(self):
@@ -468,6 +465,7 @@ class Gantry(Gantry_Interface.Interface):
         None.
 
         """
+        print('Arco giro')
         if angle == 0:
             print('No movement required')
         else:
@@ -477,8 +475,11 @@ class Gantry(Gantry_Interface.Interface):
 
             self.check_limits(x_final, y_final)
             if self.inside_limits:
-                print('Circular move')
+                print(f'Circular move, angle={angle:.3f}')
                 distancia_x, distancia_y = self.calcular_distancia()
+
+
+
                 self.circular_move(x_final, y_final, distancia_x, distancia_y)
                 self.position = self.get_position()
                 self.inside_limits = False
@@ -521,7 +522,7 @@ class Gantry(Gantry_Interface.Interface):
         self.position_wrts = self.position_source()
         position_x_s = self.position_wrts[0]
         position_y_s = self.position_wrts[1]
-        x_final_wrts = -position_x_s*np.cos(angle) + position_y_s*np.sin(angle)
+        x_final_wrts = position_x_s*np.cos(angle) + position_y_s*np.sin(angle)
         y_final_wrts = -position_x_s*np.sin(angle) + position_y_s*np.cos(angle)
         x_final, y_final = self.change_coordinates_source_to_gantry(          \
                                                     x_final_wrts, y_final_wrts)
@@ -560,16 +561,20 @@ class Gantry(Gantry_Interface.Interface):
 
     def circulo_min(self):
         """
-        akes a maximum circle with radius from the source to the shortest end
+        Makes a maximum circle with radius from the source to the shortest end
         of the gantry movement area. The initial position is in the samen X
         coordinate as the source and the Y is the limit in the same line minus
         1 mm. This function makes a maximum circle in two time steps: both of
         180 degrees.
 
         """
-        self.set_initial_position(np.sqrt(2)*self.distancia_minima)
+        self.set_initial_position(self.distancia_minima)
         self.arco_giro(2*np.pi)
 
     def print_position_wrt_source(self):
+        """
+        Prints the actual position of the machine in source coordinate system.
+
+        """
         self.position_wrts = self.position_source()
         print(self.position_wrts)
